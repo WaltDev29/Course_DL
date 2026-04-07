@@ -1,0 +1,120 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>MNIST Digit Classifier (Draw)</title>
+  <link rel="stylesheet" href="{{url_for('static', filename='style.css')}}" />
+  <style>
+    .canvas-wrap { display: grid; gap: 12px; grid-template-columns: 280px 1fr; align-items: start; }
+    canvas { border: 1px solid #ddd; touch-action: none; background: #fff; }
+    .tools { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .result { margin-top: 12px; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>MNIST 손글씨 숫자 인식 (그려서 예측)</h1>
+
+    <div class="canvas-wrap">
+      <div>
+        <canvas id="board" width="280" height="280"></canvas>
+        <div class="tools">
+          <label>펜 굵기
+            <input id="size" type="range" min="8" max="40" value="24"/>
+          </label>
+          <button id="clear" type="button">지우기</button>
+          <button id="predict" type="button">예측하기</button>
+        </div>
+        <div class="result" id="result"></div>
+      </div>
+
+      <div>
+        <p>마우스/터치로 캔버스에 <b>진하게</b> 숫자를 그린 뒤 “예측하기”를 눌러보세요.</p>
+        <ul>
+          <li>배경은 흰색, 글씨는 검정색으로 전송됩니다.</li>
+          <li>서버에서 28×28로 전처리 후 모델에 입력합니다.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('board');
+    const ctx = canvas.getContext('2d');
+    const sizeEl = document.getElementById('size');
+    const clearBtn = document.getElementById('clear');
+    const predictBtn = document.getElementById('predict');
+    const resultEl = document.getElementById('result');
+
+    // 초기 설정: 흰 배경
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.strokeStyle = '#000';
+
+    let drawing = false;
+    let last = null;
+
+    function getPos(e) {
+      const rect = canvas.getBoundingClientRect();
+      if (e.touches && e.touches[0]) {
+        return { x: e.touches[0].clientX - rect.left, y: e.touches[0].clientY - rect.top };
+      }
+      return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+    }
+
+    function start(e) {
+      drawing = true;
+      ctx.lineWidth = Number(sizeEl.value);
+      last = getPos(e);
+    }
+    function move(e) {
+      if (!drawing) return;
+      const p = getPos(e);
+      ctx.beginPath();
+      ctx.moveTo(last.x, last.y);
+      ctx.lineTo(p.x, p.y);
+      ctx.stroke();
+      last = p;
+      e.preventDefault();
+    }
+    function end() { drawing = false; last = null; }
+
+    // 마우스
+    canvas.addEventListener('mousedown', start);
+    canvas.addEventListener('mousemove', move);
+    window.addEventListener('mouseup', end);
+    // 터치
+    canvas.addEventListener('touchstart', start, { passive: false });
+    canvas.addEventListener('touchmove', move, { passive: false });
+    canvas.addEventListener('touchend', end);
+
+    clearBtn.addEventListener('click', () => {
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = '#000';
+      resultEl.textContent = '';
+    });
+
+    predictBtn.addEventListener('click', async () => {
+      resultEl.textContent = '예측 중...';
+      // 캔버스를 PNG Blob으로 만들어 multipart/form-data로 업로드
+      const blob = await new Promise(res => canvas.toBlob(res, 'image/png'));
+      const fd = new FormData();
+      fd.append('file', blob, 'drawn.png');
+      try {
+        const r = await fetch('/predict', { method: 'POST', body: fd });
+        const j = await r.json();
+        if (j.error) {
+          resultEl.textContent = '에러: ' + j.error;
+        } else {
+          resultEl.textContent = `예측: ${j.digit} (확률 ${(j.prob*100).toFixed(2)}%)`;
+        }
+      } catch (e) {
+        resultEl.textContent = '네트워크 에러';
+      }
+    });
+  </script>
+</body>
+</html>
