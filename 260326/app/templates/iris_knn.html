@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Iris KNN 분류기</title>
+    <link rel="stylesheet" href="{{url_for('static', filename='styles/iris.css')}}">
+</head>
+<body>
+
+<div class="container">
+
+    <div class="card">
+        <header class="card-header">
+            <h1>붓꽃 품종 예측</h1>
+            <p class="meta">KNN Model</p>
+        </header>
+
+        <form method="post" class="form">
+            
+            <div class="input-group">
+                <label>꽃받침 길이 (cm)</label>
+                <input type="number" step="0.01" name="sepal_length" min="4.3" max="7.9" placeholder="범위 (4.3 ~ 7.9)" required>
+            </div>
+
+            <div class="input-group">
+                <label>꽃받침 너비 (cm)</label>
+                <input type="number" step="0.01" name="sepal_width" min="2.0" max="4.4" placeholder="범위 (2.0 ~ 4.4)" required>
+            </div>
+
+            <div class="input-group">
+                <label>꽃잎 길이 (cm)</label>
+                <input type="number" step="0.01" name="petal_length" min="1.0" max="6.9" placeholder="범위 (1.0 ~ 6.9)" required>
+            </div>
+
+            <div class="input-group">
+                <label>꽃잎 너비 (cm)</label>
+                <input type="number" step="0.01" name="petal_width" min="0.1" max="2.5" placeholder="범위 (0.1 ~ 2.5)" required>
+            </div>
+            
+            <button type="submit" class="submit-btn">예측</button>
+        </form>
+    </div>
+
+    {% if prediction %}
+    <div class="card result-card">
+        <h2>예측 결과</h2>
+        <img src="{{ url_for('static', filename='images/' + image_name) }}">
+        <p class="result-text">{{ prediction }}</p>
+    </div>
+    {% endif %}
+
+</div>
+
+</body>
+</html>

@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>닥스훈트, & 사모예드 K-Means 분류기</title>
+    <link rel="stylesheet" href="{{url_for('static', filename='styles/dog.css')}}">
+</head>
+<body>
+
+<div class="container">
+
+    <div class="card">
+        <header class="card-header">
+            <h1>닥스훈트, 사모예드 품종 예측</h1>
+            <p class="meta">KNN Model</p>
+        </header>
+
+        <form method="post" class="form">
+
+            <div class="input-group">
+                <label>길이 (cm)</label>
+                <input type="number" step="0.01" name="length" min="70" max="90" required>
+            </div>
+
+            <div class="input-group">
+                <label>높이 (cm)</label>
+                <input type="number" step="0.01" name="height" min="10" max="70" required>
+            </div>
+
+            <button type="submit" class="submit-btn">예측</button>
+
+        </form>
+    </div>
+
+    {% if prediction %}
+    <div class="card result-card">
+        <h2>예측 결과</h2>
+        <img src="{{ url_for('static', filename='images/' + image_name) }}">
+        <p class="result-text">{{ prediction }}</p>
+        <h2>군집 그래프</h2>
+        <img src="{{ url_for('static', filename='results/' + graph_path) }}">
+    </div>
+    {% endif %}
+
+</div>
+
+</body>
+</html>

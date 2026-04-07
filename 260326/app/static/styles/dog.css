@@ -1,0 +1,145 @@
+* {
+    box-sizing: border-box;
+}
+
+
+/* 전체 배경 */
+body {
+    margin: 0;
+    font-family: "Georgia", "Times New Roman", serif;
+    color: #2f2f2f;
+
+    /* 🔥 배경 이미지 */
+    background-image: url("/static/images/bg_dog.jpg");
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+}
+
+body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+
+    background: rgba(77, 77, 77, 0.75); /* ← 숫자로 강도 조절 */
+    
+    z-index: 0;
+}
+
+/* 레이아웃 */
+.container {
+    max-width: 520px;
+    margin: 60px auto;
+    padding: 0 20px;
+
+    /* 살짝 떠있는 느낌 */
+    position: relative;
+    z-index: 1;
+}
+
+/* 카드 */
+.card {
+    background: rgba(255, 255, 255, 0.88); /* 살짝 투명 */
+    backdrop-filter: blur(6px);           /* 유리 느낌 */
+    border: 1px solid rgba(220, 220, 220, 0.7);
+    border-radius: 12px;
+    padding: 28px;
+    margin-bottom: 20px;
+}
+
+/* 카드 헤더 */
+.card-header h1 {
+    margin: 0;
+    font-size: 24px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+
+/* 서브 텍스트 */
+.meta {
+    margin-top: 6px;
+    font-size: 12px;
+    color: #7a8a84;
+}
+
+/* 폼 */
+.form {
+    margin-top: 25px;
+}
+
+/* 입력 그룹 */
+.input-group {
+    margin-bottom: 18px;
+}
+
+/* 라벨 */
+.input-group label {
+    display: block;
+    font-size: 13px;
+    color: #6c7f78;
+    margin-bottom: 4px;
+    letter-spacing: 0.3px;
+}
+
+/* 입력 */
+.input-group input {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid #cfd8d5;
+    border-radius: 6px;
+    background: #fafafa;
+    font-size: 14px;
+    transition: border 0.2s;
+}
+
+/* 포커스 */
+.input-group input:focus {
+    outline: none;
+    border-color: #2f5d50;
+    background: #ffffff;
+}
+
+/* 버튼 */
+.submit-btn {
+    margin-top: 10px;
+    padding: 10px 14px;
+    border: 1px solid #2f5d50;
+    background: #2f5d50;
+    color: white;
+    font-size: 14px;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+/* hover */
+.submit-btn:hover {
+    background: #244940;
+}
+
+/* 결과 카드 */
+.result-card h2 {
+    margin-top: 0;
+    font-size: 18px;
+    border-bottom: 1px solid #e0e0e0;
+    padding-bottom: 6px;
+}
+
+/* 결과 텍스트 */
+.result-text {
+    font-size: 25px;
+    margin: 12px 0;
+    color: #76588a;
+    font-weight: 500;
+    text-align: center;
+}
+
+/* 이미지 */
+.result-card img {
+    display: block;
+    margin: 10px auto 0;
+    width: 100%;
+    max-width: 400px;
+    margin-top: 10px;
+    border-radius: 8px;
+}
