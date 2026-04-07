@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="ko">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MNIST 손글씨 숫자 인식</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Noto+Sans+KR:wght@400;500;600;700&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="static/style.css" />
+</head>
+
+<body>
+  <div class="container">
+    <header class="header">
+      <h1>MNIST 숫자 인식기</h1>
+      <p class="subtitle">직접 캔버스에 숫자를 그려보세요</p>
+    </header>
+
+    <div class="main-content">
+      <div class="canvas-section">
+        <canvas id="board" width="280" height="280"></canvas>
+        <div class="tools">
+          <div class="tool-group">
+            <label for="size">펜 굵기</label>
+            <input id="size" type="range" min="8" max="40" value="24" />
+          </div>
+          <div class="btn-group">
+            <button id="clear" class="btn btn-secondary" type="button">지우기</button>
+            <button id="predict" class="btn btn-primary" type="button">예측하기</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="info-section">
+        <div class="info-card">
+          <h3>이용 안내🎨</h3>
+          <p>마우스나 터치로 화면에 숫자를 <b>크고 진하게</b> 그린 뒤 <strong>예측하기</strong>를 눌러 결과를 확인하세요.</p>
+        </div>
+        <div class="result" id="result"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('board');
+    const ctx = canvas.getContext('2d');
+    const sizeEl = document.getElementById('size');
+    const clearBtn = document.getElementById('clear');
+    const predictBtn = document.getElementById('predict');
+    const resultEl = document.getElementById('result');
+
+    // 초기 설정: 흰 배경
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.strokeStyle = '#000';
+
+    let drawing = false;
+    let last = null;
+
+    function getPos(e) {
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+
+      if (e.touches && e.touches[0]) {
+        return {
+          x: (e.touches[0].clientX - rect.left) * scaleX,
+          y: (e.touches[0].clientY - rect.top) * scaleY
+        };
+      }
+      return {
+        x: (e.clientX - rect.left) * scaleX,
+        y: (e.clientY - rect.top) * scaleY
+      };
+    }
+
+    function start(e) {
+      drawing = true;
+      ctx.lineWidth = Number(sizeEl.value);
+      last = getPos(e);
+    }
+    function move(e) {
+      if (!drawing) return;
+      const p = getPos(e);
+      ctx.beginPath();
+      ctx.moveTo(last.x, last.y);
+      ctx.lineTo(p.x, p.y);
+      ctx.stroke();
+      last = p;
+      if (e.cancelable) e.preventDefault();
+    }
+    function end() { drawing = false; last = null; }
+
+    // 마우스
+    canvas.addEventListener('mousedown', start);
+    canvas.addEventListener('mousemove', move);
+    window.addEventListener('mouseup', end);
+    // 터치
+    canvas.addEventListener('touchstart', start, { passive: false });
+    canvas.addEventListener('touchmove', move, { passive: false });
+    canvas.addEventListener('touchend', end);
+
+    function clearCanvas() {
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = '#000';
+      resultEl.textContent = '';
+      resultEl.classList.remove('show', 'error');
+    }
+
+    clearBtn.addEventListener('click', clearCanvas);
+
+    predictBtn.addEventListener('click', async () => {
+      resultEl.textContent = '🔄 예측 분석 중...';
+      resultEl.className = 'result show';
+
+      const blob = await new Promise(res => canvas.toBlob(res, 'image/png'));
+      const fd = new FormData();
+      fd.append('file', blob, 'drawn.png');
+      try {
+        const r = await fetch('/api/predict', { method: 'POST', body: fd });
+        const j = await r.json();
+        if (j.error) {
+          resultEl.textContent = '❌ 에러: ' + j.error;
+          resultEl.classList.add('error');
+        } else {
+          resultEl.innerHTML = `예측 결과: <strong>${j.digit}</strong> <span class="prob">(확률 ${(j.prob * 100).toFixed(2)}%)</span>`;
+        }
+      } catch (e) {
+        resultEl.textContent = '⚠️ 네트워크 에러가 발생했습니다.';
+        resultEl.classList.add('error');
+      }
+    });
+  </script>
+</body>
+
+</html>

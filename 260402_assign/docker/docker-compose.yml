@@ -1,0 +1,27 @@
+name: mnist
+
+services:
+  api:
+    build: ../services/api
+    runtime:
+      nvidia
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=0
+    ports:
+      - "${API_PORT}:8000"
+    volumes:
+      - ../services/api:/app
+      
+  web:
+    image: nginx:latest
+    ports:
+      - "${WEB_PORT}:80"
+    environment:
+      - API_URL=http://api:8000
+    depends_on:
+      - api
+    volumes:
+      - ../services/web:/usr/share/nginx
+      - ../services/web/templates/default.conf.template:/etc/nginx/templates/default.conf.template
+    
+    

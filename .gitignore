@@ -67,7 +67,7 @@ dmypy.json
 .ipynb_checkpoints
 
 # Environments
-# .env # .env 파일 실습 내용이 있어 주석 처리합니다.
+.env
 .venv
 
 # VS Code-specific
