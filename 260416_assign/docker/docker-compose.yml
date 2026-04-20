@@ -1,15 +1,26 @@
-name: mnist
+name: comfyui-service
 
 services:
-  api:
-    build: ../services/api
+  comfyui:
+    build: ../services/comfyui
     runtime: nvidia
     environment:
       - NVIDIA_VISIBLE_DEVICES=0
     ports:
+      - "${COMFYUI_PORT}:8188"
+    volumes:
+      - comfyui:/ComfyUI/models
+
+  api:
+    build: ../services/api
+    ports:
       - "${API_PORT}:8000"
+    environment:
+      - COMFYUI_URL=http://comfyui:8188
     volumes:
       - ../services/api:/app
+    depends_on:
+      - comfyui
 
   web:
     image: nginx:latest
@@ -20,5 +31,9 @@ services:
     depends_on:
       - api
     volumes:
-      - ../services/web:/usr/share/nginx
+      - ../services/web/html:/usr/share/nginx/html
       - ../services/web/templates/default.conf.template:/etc/nginx/templates/default.conf.template
+
+volumes:
+  comfyui:
+    external: true
