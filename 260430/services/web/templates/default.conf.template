@@ -1,0 +1,54 @@
+server {
+    listen 80;
+    server_name _;
+
+    # ── Gzip 압축 ──
+    gzip on;
+    gzip_types text/plain text/css application/javascript application/json image/svg+xml;
+    gzip_min_length 1024;
+
+    # ── Static 파일 서빙 ──
+    location / {
+        root   /usr/share/nginx/html;
+        index  index.html;
+        try_files $uri $uri/ /index.html;
+
+        add_header Cache-Control "no-cache";
+    }
+
+    # ── ComfyUI 이미지 뷰어만 노출: /comfy/view, /comfy/history 만 허용 ──
+    #    ComfyUI 관리 API(/prompt, /queue, /system_stats 등)는 여기서 차단됨
+    location ~ ^/comfy/(view|history) {
+        # /comfy/view → comfyui:8188/view 로 경로 변환
+        rewrite ^/comfy/(.*)$ /$1 break;
+        proxy_pass         http://comfyui:8188;
+        proxy_http_version 1.1;
+        proxy_set_header   Host              $host;
+        proxy_set_header   X-Real-IP         $remote_addr;
+        proxy_set_header   X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_read_timeout 30s;
+    }
+
+    # ── API 프록시: /api/* → http://api:8000/* ──
+    #    예)
+    #      GET  /api/          → http://api:8000/
+    #      POST /api/generate  → http://api:8000/generate
+    #      GET  /api/download  → http://api:8000/download
+    location /api/ {
+        proxy_pass         ${API_URL}/;
+        proxy_http_version 1.1;
+
+        proxy_set_header   Host              $host;
+        proxy_set_header   X-Real-IP         $remote_addr;
+        proxy_set_header   X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header   X-Forwarded-Proto $scheme;
+
+        # 이미지 생성은 최대 90초 소요될 수 있으므로 타임아웃 여유 있게 설정
+        proxy_read_timeout    90s;
+        proxy_connect_timeout 10s;
+        proxy_send_timeout    90s;
+
+        # 큰 응답(이미지 바이너리) 버퍼링 비활성화
+        proxy_buffering off;
+    }
+}

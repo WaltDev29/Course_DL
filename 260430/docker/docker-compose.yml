@@ -1,0 +1,52 @@
+name: comfyui-ollama
+
+services:
+  ollama:
+    image: ollama/ollama:latest
+    runtime: nvidia
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=0
+    ports:
+      - "${OLLAMA_PORT}:11434"
+    volumes:
+      - ollama:/root/.ollama
+
+  comfyui:
+    build: ../services/comfyui
+    runtime: nvidia
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=0
+    ports:
+      - "${COMFYUI_PORT}:8188"
+    volumes:
+      - comfyui:/ComfyUI/models
+
+  api:
+    build: ../services/api
+    ports:
+      - "${API_PORT}:8000"
+    environment:
+      - COMFYUI_URL=http://comfyui:8188
+      - OLLAMA_URL=http://ollama:11434
+    volumes:
+      - ../services/api:/app
+    depends_on:
+      - comfyui
+
+  web:
+    image: nginx:latest
+    ports:
+      - "${WEB_PORT}:80"
+    environment:
+      - API_URL=http://api:8000
+    depends_on:
+      - api
+    volumes:
+      - ../services/web/html:/usr/share/nginx/html
+      - ../services/web/templates/default.conf.template:/etc/nginx/templates/default.conf.template
+
+volumes:
+  comfyui:
+    external: true
+  ollama:
+    external: true
