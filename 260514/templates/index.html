@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ComfyUI Studio</title>
+    <meta name="description" content="AI 이미지 생성 스튜디오 - 텍스트 프롬프트로 놀라운 이미지를 만들어보세요.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+
+<body>
+
+    <!-- 배경 오브 애니메이션 -->
+    <div class="bg-orbs">
+        <div class="orb orb-1"></div>
+        <div class="orb orb-2"></div>
+        <div class="orb orb-3"></div>
+    </div>
+
+    <!-- 갤러리 토글 버튼 -->
+    <button class="menu-btn" id="gallery-toggle-btn" onclick="toggleSidebar()" title="Generated Images">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="7" height="7" />
+            <rect x="14" y="3" width="7" height="7" />
+            <rect x="3" y="14" width="7" height="7" />
+            <rect x="14" y="14" width="7" height="7" />
+        </svg>
+    </button>
+
+    <!-- 메인 콘텐츠 -->
+    <main class="main-container">
+        <header class="page-header">
+            <div class="logo-badge">AI</div>
+            <h1>ComfyUI <span class="gradient-text">Studio</span></h1>
+            <p class="subtitle">Transform your words into stunning visuals</p>
+        </header>
+
+        <!-- 워크스페이스: 좌(폼) + 우(결과) 반응형 그리드 -->
+        <div class="workspace">
+
+            <!-- 왼쪽: 프롬프트 입력 -->
+            <div class="workspace-left">
+                <div class="card">
+                    <form id="generate-form">
+                        <div class="form-group">
+                            <label for="pos-prompt">
+                                <span class="label-icon">✨</span> Positive Prompt
+                            </label>
+                            <textarea id="pos-prompt" name="pos" rows="4" placeholder="생성하고 싶은 이미지를 묘사해주세요.
+(예. a serene mountain landscape at sunset, cinematic lighting, 4K)"></textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="neg-prompt">
+                                <span class="label-icon">🚫</span> Negative Prompt
+                            </label>
+                            <textarea id="neg-prompt" name="neg" rows="3" placeholder="원하지 않는 요소를 묘사해주세요.
+(예. blurry, low quality, distorted)"></textarea>
+                        </div>
+
+                        <button type="submit" class="generate-btn" id="generate-btn">
+                            <span class="btn-content" id="btn-content">
+                                <svg class="btn-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                                    stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+                                    stroke-linejoin="round">
+                                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+                                </svg>
+                                Generate Image
+                            </span>
+                            <span class="btn-shimmer"></span>
+                        </button>
+                    </form>
+
+                    <!-- 에러 메시지 -->
+                    <div class="error-box" id="error-box" style="display:none;">
+                        <span class="error-icon">⚠️</span>
+                        <span id="error-msg"></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 오른쪽: 결과 이미지 또는 플레이스홀더 -->
+            <div class="workspace-right">
+                <!-- 로딩 상태 -->
+                <div class="result-loading" id="result-loading" style="display:none;">
+                    <div class="loading-inner">
+                        <div class="loading-spinner"></div>
+                        <p class="loading-title">Generating...</p>
+                        <p class="loading-desc">ComfyUI가 이미지를 생성 중입니다.<br>약 30~60초 소요될 수 있습니다.</p>
+                    </div>
+                </div>
+
+                <!-- 결과 이미지 -->
+                <div class="result-section" id="result-section" style="display:none;">
+                    <div class="result-header">
+                        <h2>
+                            <span class="result-dot"></span>
+                            Generated Result
+                        </h2>
+                        <button id="download-btn" class="download-btn" title="Save image">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                                <polyline points="7 10 12 15 17 10" />
+                                <line x1="12" y1="15" x2="12" y2="3" />
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="result-img-wrap" id="result-img-wrap">
+                        <img src="" alt="Generated Image" class="result-img" id="result-img">
+                        <div class="img-overlay">
+                            <span>🔍 Click to enlarge</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 초기 플레이스홀더 -->
+                <div class="result-placeholder" id="result-placeholder">
+                    <div class="placeholder-inner">
+                        <div class="placeholder-icon">🖼️</div>
+                        <p class="placeholder-title">Ready to generate</p>
+                        <p class="placeholder-desc">프롬프트를 입력하고<br><em>Generate Image</em> 버튼을 클릭해주세요</p>
+                    </div>
+                </div>
+            </div>
+
+        </div><!-- /workspace -->
+
+    </main>
+
+    <!-- 사이드바 -->
+    <div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleSidebar()"></div>
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <h3>Gallery</h3>
+            <button class="close-btn" id="sidebar-close-btn" onclick="toggleSidebar()">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+            </button>
+        </div>
+        <div class="image-gallery" id="image-gallery">
+            <div class="gallery-empty" id="gallery-empty">
+                <span>🎨</span>
+                <p>No images yet.<br>Generate your first!</p>
+            </div>
+        </div>
+    </aside>
+
+    <!-- 이미지 라이트박스 -->
+    <div class="lightbox" id="lightbox">
+        <div class="lightbox-backdrop" onclick="closeLightbox()"></div>
+        <div class="lightbox-content">
+            <img src="" alt="" id="lightbox-img">
+            <div class="lightbox-actions">
+                <button class="lightbox-save-btn" id="lightbox-save-btn">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                        <polyline points="7 10 12 15 17 10" />
+                        <line x1="12" y1="15" x2="12" y2="3" />
+                    </svg>
+                    Save Image
+                </button>
+                <button class="lightbox-close-btn" id="lightbox-close-btn" onclick="closeLightbox()">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18" />
+                        <line x1="6" y1="6" x2="18" y2="18" />
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /* ═══════════════════════════════════════════
+           API 설정
+           nginx가 /api/ → http://api:5000/ 로 프록시함
+        ═══════════════════════════════════════════ */
+        const API_BASE = '/api';
+
+        /* ═══════════════════════════════════════════
+           상태
+        ═══════════════════════════════════════════ */
+        let galleryImages = []; // { imgUrl }[]
+
+        /* ═══════════════════════════════════════════
+           DOM 참조
+        ═══════════════════════════════════════════ */
+        const form = document.getElementById('generate-form');
+        const generateBtn = document.getElementById('generate-btn');
+        const btnContent = document.getElementById('btn-content');
+        const errorBox = document.getElementById('error-box');
+        const errorMsg = document.getElementById('error-msg');
+
+        const resultSection = document.getElementById('result-section');
+        const resultPlaceholder = document.getElementById('result-placeholder');
+        const resultLoading = document.getElementById('result-loading');
+        const resultImg = document.getElementById('result-img');
+        const resultImgWrap = document.getElementById('result-img-wrap');
+        const downloadBtn = document.getElementById('download-btn');
+
+        const gallery = document.getElementById('image-gallery');
+        const galleryEmpty = document.getElementById('gallery-empty');
+
+        const lightbox = document.getElementById('lightbox');
+        const lightboxImg = document.getElementById('lightbox-img');
+        const lightboxSaveBtn = document.getElementById('lightbox-save-btn');
+
+        /* ═══════════════════════════════════════════
+           UI 상태 헬퍼
+        ═══════════════════════════════════════════ */
+        function setLoading(on) {
+            generateBtn.disabled = on;
+            if (on) {
+                generateBtn.classList.add('loading');
+                btnContent.innerHTML = `
+                    <svg class="btn-icon spin-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+                    </svg>
+                    Generating…`;
+                resultPlaceholder.style.display = 'none';
+                resultSection.style.display = 'none';
+                resultLoading.style.display = 'flex';
+            } else {
+                generateBtn.classList.remove('loading');
+                btnContent.innerHTML = `
+                    <svg class="btn-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+                    </svg>
+                    Generate Image`;
+                resultLoading.style.display = 'none';
+            }
+        }
+
+        function showError(msg) {
+            errorBox.style.display = 'flex';
+            errorMsg.textContent = msg;
+        }
+
+        function clearError() {
+            errorBox.style.display = 'none';
+            errorMsg.textContent = '';
+        }
+
+        function showResult(imgUrl) {
+            resultImg.src = imgUrl;
+            resultSection.style.display = 'block';
+            resultPlaceholder.style.display = 'none';
+
+            // 모바일 단일 컬럼일 때 스크롤
+            if (window.innerHeight > window.innerWidth) {
+                setTimeout(() => resultSection.scrollIntoView({ behavior: 'smooth', block: 'start' }), 300);
+            }
+        }
+
+        /* ═══════════════════════════════════════════
+           갤러리
+        ═══════════════════════════════════════════ */
+        function addToGallery(imgUrl) {
+            galleryImages.unshift(imgUrl);
+            galleryEmpty.style.display = 'none';
+
+            const item = document.createElement('div');
+            item.className = 'gallery-item';
+            item.innerHTML = `
+                <img src="${imgUrl}" alt="Generated Image" loading="lazy">
+                <div class="gallery-overlay"><span class="gallery-zoom-icon">🔍</span></div>`;
+            item.addEventListener('click', () => openLightbox(imgUrl));
+            gallery.insertBefore(item, galleryEmpty);
+        }
+
+        /* ═══════════════════════════════════════════
+           Form Submit → POST /api/generate
+        ═══════════════════════════════════════════ */
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            clearError();
+
+            const pos = document.getElementById('pos-prompt').value.trim();
+            const neg = document.getElementById('neg-prompt').value.trim();
+
+            if (!pos) {
+                showError('Positive Prompt를 입력해주세요.');
+                return;
+            }
+
+            setLoading(true);
+
+            try {
+                const res = await fetch(`${API_BASE}/generate`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ pos, neg }),
+                });
+
+                if (!res.ok) {
+                    const detail = await res.json().catch(() => ({}));
+                    throw new Error(detail.detail || `HTTP ${res.status}`);
+                }
+
+                const data = await res.json();  // { img_url: "..." }
+                const imgUrl = data.img_url;
+
+                showResult(imgUrl);
+                addToGallery(imgUrl);
+
+            } catch (err) {
+                showError(`이미지 생성 실패: ${err.message}`);
+                resultPlaceholder.style.display = 'flex';
+            } finally {
+                setLoading(false);
+            }
+        });
+
+        /* ═══════════════════════════════════════════
+           사이드바 토글
+        ═══════════════════════════════════════════ */
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('open');
+            document.getElementById('sidebar-overlay').classList.toggle('active');
+        }
+
+        /* ═══════════════════════════════════════════
+           라이트박스
+        ═══════════════════════════════════════════ */
+        function openLightbox(src) {
+            lightboxImg.src = src;
+            lightbox.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeLightbox() {
+            lightbox.classList.remove('active');
+            document.body.style.overflow = '';
+        }
+
+        document.addEventListener('keydown', e => {
+            if (e.key === 'Escape') closeLightbox();
+        });
+
+        // 결과 이미지 클릭 → 라이트박스
+        resultImgWrap.addEventListener('click', () => {
+            if (resultImg.src) openLightbox(resultImg.src);
+        });
+
+        /* ═══════════════════════════════════════════
+           다운로드  GET /api/download?url=...
+           API 서버가 ComfyUI 이미지를 프록시하여 반환
+        ═══════════════════════════════════════════ */
+        function downloadImage(src) {
+            lightboxSaveBtn.disabled = true;
+            lightboxSaveBtn.innerHTML = 'Saving…';
+
+            const a = document.createElement('a');
+            a.href = `${API_BASE}/download?url=${encodeURIComponent(src)}`;
+            a.style.display = 'none';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+
+            setTimeout(() => {
+                lightboxSaveBtn.disabled = false;
+                lightboxSaveBtn.innerHTML = `
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                        <polyline points="7 10 12 15 17 10"/>
+                        <line x1="12" y1="15" x2="12" y2="3"/>
+                    </svg>
+                    Save Image`;
+            }, 1500);
+        }
+
+        lightboxSaveBtn.addEventListener('click', () => {
+            if (lightboxImg.src) downloadImage(lightboxImg.src);
+        });
+
+        downloadBtn.addEventListener('click', () => {
+            if (resultImg.src) downloadImage(resultImg.src);
+        });
+    </script>
+</body>
+
+</html>
