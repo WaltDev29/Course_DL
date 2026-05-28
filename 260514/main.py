@@ -8,7 +8,7 @@ OLLAMA_CHAT_URL = BASEURL + "/api/chat"
 app = Flask(__name__)
 @app.get("/")
 def index():
-    return render_template("ex6.html")
+    return render_template("ex8.html")
  
  
 @app.post("/api/chat")

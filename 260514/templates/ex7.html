@@ -43,8 +43,8 @@ document.getElementById("send").onclick = async () => {
   out.textContent = "요청 중...";
 
   try {
-    const payload = { model: "gemma3:4b", stream: false, messages: history };
-    const res = await fetch("http://GPUIP:11434/api/chat", {
+    const payload = { model: "gemma4:e2b", stream: false, messages: history };
+    const res = await fetch("http://localhost:11434/api/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload)

@@ -30,8 +30,8 @@ let history = [];
 let systemInjected = false;
 
 async function callOllama(messages) {
-  const payload = { model: "gemma3:4b", stream: false, messages };
-  const res = await fetch("http://GPUIP:11434/api/chat", {
+  const payload = { model: "gemma4:e2b", stream: false, messages };
+  const res = await fetch("http://localhost:11434/api/chat", {
     method: "POST", headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload)
   });
