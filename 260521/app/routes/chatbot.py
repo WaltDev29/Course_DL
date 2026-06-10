@@ -3,19 +3,20 @@ from fastapi import APIRouter
 from pydantic import BaseModel
 import requests
 import os
-from langchain_openai import ChatOpenAI
+# from langchain_openai import ChatOpenAI
 
 OLLAMA_CHAT_URL = "http://host.docker.internal:11434/api/chat"
 model = "gemma4:e2b"
 
-llm = ChatOpenAI(
-    base_url="http://kimi.aikopo.net/v1",
-    model="MiniMax-M2.5-UD-Q3_K_XL-00001-of-00004.gguf",
-    api_key="dummy_key",  # 빈 문자열("")이면 Pydantic 에러가 발생하므로 임의의 값 입력
-    default_headers={
-        "User-Agent": "Mozilla/5.0"
-    }
-)
+# Minimax 사용 시
+# llm = ChatOpenAI(
+#     base_url="http://kimi.aikopo.net/v1",
+#     model="MiniMax-M2.5-UD-Q3_K_XL-00001-of-00004.gguf",
+#     api_key="dummy_key",  # 빈 문자열("")이면 Pydantic 에러가 발생하므로 임의의 값 입력
+#     default_headers={
+#         "User-Agent": "Mozilla/5.0"
+#     }
+# )
 
 router = APIRouter(prefix="/chatbot", tags=["chatbot"])
 
@@ -24,21 +25,26 @@ memory = []
 def response(messages: list):
     global memory
 
-    res = llm.invoke(messages)
-    # res = requests.post(
-    #     OLLAMA_CHAT_URL,
-    #     json={
-    #         "model": model,
-    #         "messages": messages,
-    #         "stream": False,  # stream=False로 변경하여 전체 응답을 한 번에 받음
-    #     },
-    #     timeout=600,
-    # )
-    # res.raise_for_status()
-    print(res.content)
+    # Minimax 사용 시
+    # res = llm.invoke(messages)
+    # print(res.content)
+
+    res = requests.post(
+        OLLAMA_CHAT_URL,
+        json={
+            "model": model,
+            "messages": messages,
+            "stream": False,
+        },
+        timeout=600,
+    )
+    res.raise_for_status()
+    res_data = res.json()
+    content = res_data["message"]["content"]
     
-    # requests.Response 객체에서 JSON 데이터를 파싱
-    data = { "role": "assistant", "content": res.content }
+    print(content)
+    
+    data = { "role": "assistant", "content": content }
     memory.append(data)
 
     # 대화 기록 슬라이싱
