@@ -1,4 +1,4 @@
-import ollama
+# import ollama
 from fastapi import APIRouter
 from pydantic import BaseModel
 import requests
@@ -41,27 +41,11 @@ def response(messages: list):
     data = { "role": "assistant", "content": res.content }
     memory.append(data)
 
-    if len(memory) > 10:
-        formatted = "\n".join(
-            [f"{m['role']}: {m['content']}" for m in memory]
-        )
-
-        summary_res = requests.post(
-            OLLAMA_CHAT_URL,
-            json={
-                "model": model,
-                "messages": [
-                    {"role": "system", "content": """현재 게임의 진행상황을 요약하시오."""},
-                    {"role": "user", "content": formatted}
-                ],
-                "stream": False,
-            },
-            timeout=600,
-        )
-        summary_res.raise_for_status()
-        summary_data = summary_res.json()
-        
-        memory = [memory[0], {"role": "system", "content": f"이전 대화 요약: {summary_data['message']['content']}"}]
+    # 대화 기록 슬라이싱
+    if len(memory) > 11:
+        # memory[0]은 시스템 프롬프트이므로 유지
+        # 최근 3턴만 남기고 과거 기록 삭제
+        memory = [memory[0]] + memory[-6:]
     
     return {"message": data}
 
@@ -75,7 +59,7 @@ def init_chat():
         with open(prompt_path, "r", encoding="utf-8") as f:
             system_prompt = f.read()
     except FileNotFoundError:
-        system_prompt = "You are a helpful assistant."
+        system_prompt = "당신은 식인종 선교사 게임의 진행자입니다. 본 게임은 텍스트로 진행합니다."
 
     memory = [{"role": "system", "content": system_prompt.strip()}]
     return {"status": "initialized"}
