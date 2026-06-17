@@ -1,4 +1,4 @@
-name: comfyui-ollama
+name: DL-term-project
 
 services:
   ollama:

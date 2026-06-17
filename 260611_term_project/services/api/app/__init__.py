@@ -1,7 +1,7 @@
 # app/__init__.py
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.routes import generate
+from app.routes import generate, chat_router
 
 def create_app() -> FastAPI:
     app = FastAPI(title="ComfyUI Studio API")
@@ -16,5 +16,6 @@ def create_app() -> FastAPI:
 
     # ---------- 라우터 등록 ----------
     app.include_router(generate.router)
+    app.include_router(chat_router.router)
 
     return app

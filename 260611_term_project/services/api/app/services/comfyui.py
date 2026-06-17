@@ -58,37 +58,3 @@ def extract_first_image_url(history_block: dict) -> str:
             if fn:
                 return f"/comfy/view?filename={fn}&subfolder={sub}&type={t}"
     return ""
-
-def translate_prompt(pos: str, neg: str) -> tuple[str, str]:
-    """Ollama를 이용해 한국어 프롬프트를 영어로 번역 및 정제"""
-    system_msg = (
-        "You are a professional prompt engineer and translator. "
-        "Translate the given Korean prompts into descriptive English for AI image generation. "
-        "Return ONLY a JSON object with 'pos' and 'neg' keys."
-    )
-    prompt_content = f"Positive Prompt: {pos}\nNegative Prompt: {neg}"
-
-    res = requests.post(
-        f"{config.OLLAMA_URL}/api/generate",
-        json={
-            "model": "gemma4:e2b",
-            "system": system_msg,
-            "prompt": prompt_content,
-            "format": "json",
-            "stream": False
-        },
-        timeout=600,
-    )
-
-    res.raise_for_status()
-    ollama_res = res.json()
-    
-    try:
-        translated = json.loads(ollama_res["response"])
-        pos_final = translated.get("pos", pos)
-        neg_final = translated.get("neg", neg)
-    except (json.JSONDecodeError, KeyError):
-        pos_final = pos
-        neg_final = neg
-        
-    return pos_final, neg_final

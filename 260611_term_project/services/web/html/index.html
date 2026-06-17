@@ -4,390 +4,525 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ComfyUI Studio</title>
-    <meta name="description" content="AI 이미지 생성 스튜디오 - 텍스트 프롬프트로 놀라운 이미지를 만들어보세요.">
+    <title>AI Assistant Studio</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/static/style.css">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600&family=Pretendard:wght@300;400;500;600&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="static/style.css">
 </head>
 
 <body>
 
-    <!-- 배경 오브 애니메이션 -->
-    <div class="bg-orbs">
-        <div class="orb orb-1"></div>
-        <div class="orb orb-2"></div>
-        <div class="orb orb-3"></div>
-    </div>
-
-    <!-- 갤러리 토글 버튼 -->
-    <button class="menu-btn" id="gallery-toggle-btn" onclick="toggleSidebar()" title="Generated Images">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-            stroke-linecap="round" stroke-linejoin="round">
-            <rect x="3" y="3" width="7" height="7" />
-            <rect x="14" y="3" width="7" height="7" />
-            <rect x="3" y="14" width="7" height="7" />
-            <rect x="14" y="14" width="7" height="7" />
-        </svg>
-    </button>
-
-    <!-- 메인 콘텐츠 -->
-    <main class="main-container">
-        <header class="page-header">
-            <div class="logo-badge">AI</div>
-            <h1>ComfyUI <span class="gradient-text">Studio</span></h1>
-            <p class="subtitle">Transform your words into stunning visuals</p>
-        </header>
-
-        <!-- 워크스페이스: 좌(폼) + 우(결과) 반응형 그리드 -->
-        <div class="workspace">
-
-            <!-- 왼쪽: 프롬프트 입력 -->
-            <div class="workspace-left">
-                <div class="card">
-                    <form id="generate-form">
-                        <div class="form-group">
-                            <label for="pos-prompt">
-                                <span class="label-icon">✨</span> Positive Prompt
-                            </label>
-                            <textarea id="pos-prompt" name="pos" rows="4" placeholder="생성하고 싶은 이미지를 묘사해주세요.
-(예. a serene mountain landscape at sunset, cinematic lighting, 4K)"></textarea>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="neg-prompt">
-                                <span class="label-icon">🚫</span> Negative Prompt
-                            </label>
-                            <textarea id="neg-prompt" name="neg" rows="3" placeholder="원하지 않는 요소를 묘사해주세요.
-(예. blurry, low quality, distorted)"></textarea>
-                        </div>
-
-                        <button type="submit" class="generate-btn" id="generate-btn">
-                            <span class="btn-content" id="btn-content">
-                                <svg class="btn-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
-                                    stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
-                                    stroke-linejoin="round">
-                                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
-                                </svg>
-                                Generate Image
-                            </span>
-                            <span class="btn-shimmer"></span>
-                        </button>
-                    </form>
-
-                    <!-- 에러 메시지 -->
-                    <div class="error-box" id="error-box" style="display:none;">
-                        <span class="error-icon">⚠️</span>
-                        <span id="error-msg"></span>
-                    </div>
-                </div>
+    <div class="chat-wrapper">
+        <div class="chat-header">
+            <div class="header-title">AI Chat</div>
+            <div style="display: flex; gap: 10px;">
+                <button class="clear-btn" id="gallery-btn">갤러리</button>
+                <button class="clear-btn" id="clear-btn">채팅 초기화</button>
             </div>
+        </div>
 
-            <!-- 오른쪽: 결과 이미지 또는 플레이스홀더 -->
-            <div class="workspace-right">
-                <!-- 로딩 상태 -->
-                <div class="result-loading" id="result-loading" style="display:none;">
-                    <div class="loading-inner">
-                        <div class="loading-spinner"></div>
-                        <p class="loading-title">Generating...</p>
-                        <p class="loading-desc">ComfyUI가 이미지를 생성 중입니다.<br>약 30~60초 소요될 수 있습니다.</p>
-                    </div>
-                </div>
+        <div class="chat-messages" id="chat-messages">
+            <!-- Messages will be appended here -->
+        </div>
 
-                <!-- 결과 이미지 -->
-                <div class="result-section" id="result-section" style="display:none;">
-                    <div class="result-header">
-                        <h2>
-                            <span class="result-dot"></span>
-                            Generated Result
-                        </h2>
-                        <button id="download-btn" class="download-btn" title="Save image">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
-                                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                                <polyline points="7 10 12 15 17 10" />
-                                <line x1="12" y1="15" x2="12" y2="3" />
-                            </svg>
-                        </button>
-                    </div>
-                    <div class="result-img-wrap" id="result-img-wrap">
-                        <img src="" alt="Generated Image" class="result-img" id="result-img">
-                        <div class="img-overlay">
-                            <span>🔍 Click to enlarge</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- 초기 플레이스홀더 -->
-                <div class="result-placeholder" id="result-placeholder">
-                    <div class="placeholder-inner">
-                        <div class="placeholder-icon">🖼️</div>
-                        <p class="placeholder-title">Ready to generate</p>
-                        <p class="placeholder-desc">프롬프트를 입력하고<br><em>Generate Image</em> 버튼을 클릭해주세요</p>
-                    </div>
-                </div>
+        <div class="chat-input-area">
+            <div class="input-wrapper">
+                <input type="text" id="user-input" autocomplete="off">
             </div>
-
-        </div><!-- /workspace -->
-
-    </main>
-
-    <!-- 사이드바 -->
-    <div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleSidebar()"></div>
-    <aside class="sidebar" id="sidebar">
-        <div class="sidebar-header">
-            <h3>Gallery</h3>
-            <button class="close-btn" id="sidebar-close-btn" onclick="toggleSidebar()">
+            <button id="gen-img-btn" title="Generate Image">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                    <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                    <polyline points="21 15 16 10 5 21"></polyline>
+                </svg>
+            </button>
+            <button id="send-btn" title="Send">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                     stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                    <line x1="18" y1="6" x2="6" y2="18" />
-                    <line x1="6" y1="6" x2="18" y2="18" />
+                    <line x1="22" y1="2" x2="11" y2="13"></line>
+                    <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
                 </svg>
             </button>
         </div>
-        <div class="image-gallery" id="image-gallery">
-            <div class="gallery-empty" id="gallery-empty">
-                <span>🎨</span>
-                <p>No images yet.<br>Generate your first!</p>
+    </div>
+
+    <!-- Gallery Pane -->
+    <div id="galleryPane" class="gallery-pane">
+        <div class="gallery-header">
+            <h3>이미지 갤러리</h3>
+            <button id="galleryCloseBtn" class="gallery-close-btn">&times;</button>
+        </div>
+        <div id="galleryContent" class="gallery-content">
+            <!-- Images will be prepended here -->
+        </div>
+    </div>
+
+    <!-- Confirmation Modal -->
+    <div id="confirmModal"
+        style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000; align-items: center; justify-content: center; backdrop-filter: blur(3px);">
+        <div
+            style="background: var(--bg-color); padding: 24px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); max-width: 320px; width: 90%; text-align: center; border: 1px solid var(--border-color);">
+            <h3 style="margin-top: 0; margin-bottom: 12px; color: var(--text-color); font-size: 1.2rem;">채팅 초기화</h3>
+            <p style="margin-bottom: 24px; color: var(--text-muted); font-size: 0.95rem; line-height: 1.5;">대화 내역을 모두
+                초기화하시겠습니까?<br>이 작업은 되돌릴 수 없습니다.</p>
+            <div style="display: flex; justify-content: center; gap: 12px;">
+                <button id="modalCancelBtn"
+                    style="flex: 1; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); background: transparent; color: var(--text-color); cursor: pointer; font-size: 0.95rem; transition: background 0.2s;">취소</button>
+                <button id="modalConfirmBtn"
+                    style="flex: 1; padding: 10px; border-radius: 8px; border: none; background: #ef4444; color: white; cursor: pointer; font-size: 0.95rem; font-weight: bold; transition: opacity 0.2s;">초기화</button>
             </div>
         </div>
-    </aside>
+    </div>
 
-    <!-- 이미지 라이트박스 -->
-    <div class="lightbox" id="lightbox">
-        <div class="lightbox-backdrop" onclick="closeLightbox()"></div>
-        <div class="lightbox-content">
-            <img src="" alt="" id="lightbox-img">
-            <div class="lightbox-actions">
-                <button class="lightbox-save-btn" id="lightbox-save-btn">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                        <polyline points="7 10 12 15 17 10" />
-                        <line x1="12" y1="15" x2="12" y2="3" />
-                    </svg>
-                    Save Image
-                </button>
-                <button class="lightbox-close-btn" id="lightbox-close-btn" onclick="closeLightbox()">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                        stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                        <line x1="18" y1="6" x2="6" y2="18" />
-                        <line x1="6" y1="6" x2="18" y2="18" />
-                    </svg>
-                </button>
-            </div>
+    <!-- Image Modal -->
+    <div id="imageModal"
+        style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 3000; align-items: center; justify-content: center; backdrop-filter: blur(5px);">
+        <button id="imageModalCloseBtn"
+            style="position: absolute; top: 20px; right: 30px; background: transparent; border: none; color: white; font-size: 2.5rem; cursor: pointer;">&times;</button>
+        <div
+            style="position: relative; max-width: 90%; max-height: 90%; display: flex; flex-direction: column; align-items: center;">
+            <img id="modalImage" src="" alt="Enlarged Image"
+                style="max-width: 100%; max-height: 80vh; border-radius: 12px; box-shadow: 0 10px 40px rgba(0,0,0,0.5);">
+            <button id="modalDownloadBtn"
+                style="margin-top: 20px; padding: 12px 24px; border-radius: 8px; border: none; background: #3b82f6; color: white; cursor: pointer; font-size: 1.1rem; font-weight: bold; display: flex; align-items: center; gap: 8px; transition: background 0.2s;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="7 10 12 15 17 10"></polyline>
+                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                </svg>
+                이미지 저장
+            </button>
         </div>
     </div>
 
     <script>
-        /* ═══════════════════════════════════════════
-           API 설정
-           nginx가 /api/ → http://api:5000/ 로 프록시함
-        ═══════════════════════════════════════════ */
-        const API_BASE = '/api';
+        const chatMessages = document.getElementById('chat-messages');
+        const userInput = document.getElementById('user-input');
+        const sendBtn = document.getElementById('send-btn');
+        const genImgBtn = document.getElementById('gen-img-btn');
+        const clearBtn = document.getElementById('clear-btn');
+        const galleryBtn = document.getElementById('gallery-btn');
+        const galleryPane = document.getElementById('galleryPane');
+        const galleryCloseBtn = document.getElementById('galleryCloseBtn');
+        const galleryContent = document.getElementById('galleryContent');
 
-        /* ═══════════════════════════════════════════
-           상태
-        ═══════════════════════════════════════════ */
-        let galleryImages = []; // { imgUrl }[]
+        galleryBtn.addEventListener('click', () => {
+            galleryPane.classList.add('open');
+        });
 
-        /* ═══════════════════════════════════════════
-           DOM 참조
-        ═══════════════════════════════════════════ */
-        const form = document.getElementById('generate-form');
-        const generateBtn = document.getElementById('generate-btn');
-        const btnContent = document.getElementById('btn-content');
-        const errorBox = document.getElementById('error-box');
-        const errorMsg = document.getElementById('error-msg');
+        galleryCloseBtn.addEventListener('click', () => {
+            galleryPane.classList.remove('open');
+        });
 
-        const resultSection = document.getElementById('result-section');
-        const resultPlaceholder = document.getElementById('result-placeholder');
-        const resultLoading = document.getElementById('result-loading');
-        const resultImg = document.getElementById('result-img');
-        const resultImgWrap = document.getElementById('result-img-wrap');
-        const downloadBtn = document.getElementById('download-btn');
+        function addImageToGallery(imgUrl) {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'gallery-item-wrapper';
 
-        const gallery = document.getElementById('image-gallery');
-        const galleryEmpty = document.getElementById('gallery-empty');
+            const img = document.createElement('img');
+            img.src = imgUrl;
+            img.className = 'gallery-item';
+            img.style.cursor = 'zoom-in';
 
-        const lightbox = document.getElementById('lightbox');
-        const lightboxImg = document.getElementById('lightbox-img');
-        const lightboxSaveBtn = document.getElementById('lightbox-save-btn');
+            const dlBtn = document.createElement('button');
+            dlBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>';
+            dlBtn.className = 'gallery-dl-btn';
+            dlBtn.title = '이미지 저장';
 
-        /* ═══════════════════════════════════════════
-           UI 상태 헬퍼
-        ═══════════════════════════════════════════ */
-        function setLoading(on) {
-            generateBtn.disabled = on;
-            if (on) {
-                generateBtn.classList.add('loading');
-                btnContent.innerHTML = `
-                    <svg class="btn-icon spin-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
-                    </svg>
-                    Generating…`;
-                resultPlaceholder.style.display = 'none';
-                resultSection.style.display = 'none';
-                resultLoading.style.display = 'flex';
-            } else {
-                generateBtn.classList.remove('loading');
-                btnContent.innerHTML = `
-                    <svg class="btn-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
-                    </svg>
-                    Generate Image`;
-                resultLoading.style.display = 'none';
+            wrapper.appendChild(img);
+            wrapper.appendChild(dlBtn);
+            galleryContent.prepend(wrapper); // 최신 이미지가 위에 오도록
+
+            dlBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                downloadImage(imgUrl);
+            });
+            img.addEventListener('click', () => {
+                openImageModal(imgUrl);
+            });
+        }
+
+        // Image Download Helper
+        async function downloadImage(url) {
+            try {
+                const res = await fetch(url);
+                const blob = await res.blob();
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(blob);
+
+                // Extract filename from URL or use default
+                let filename = 'generated_image.png';
+                try {
+                    // URL 객체를 사용해 쿼리 파라미터(filename)를 추출
+                    const urlObj = new URL(url, window.location.origin);
+                    if (urlObj.searchParams.has('filename')) {
+                        filename = urlObj.searchParams.get('filename');
+                    } else {
+                        // 쿼리 파라미터가 없으면 경로의 마지막 부분을 사용
+                        const pathname = urlObj.pathname;
+                        const parts = pathname.split('/');
+                        const lastPart = parts[parts.length - 1];
+                        if (lastPart && lastPart.includes('.')) {
+                            filename = lastPart;
+                        }
+                    }
+                } catch (e) {
+                    // URL 파싱 실패 시 기본 이름 사용
+                    console.warn("Filename parse error:", e);
+                }
+
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(a.href);
+            } catch (err) {
+                console.error("Download failed:", err);
+                showToast("이미지 다운로드에 실패했습니다.");
             }
         }
 
-        function showError(msg) {
-            errorBox.style.display = 'flex';
-            errorMsg.textContent = msg;
+        // Image Modal Logic
+        const imageModal = document.getElementById('imageModal');
+        const modalImage = document.getElementById('modalImage');
+        const imageModalCloseBtn = document.getElementById('imageModalCloseBtn');
+        const modalDownloadBtn = document.getElementById('modalDownloadBtn');
+        let currentModalImgUrl = '';
+
+        function openImageModal(imgUrl) {
+            currentModalImgUrl = imgUrl;
+            modalImage.src = imgUrl;
+            imageModal.style.display = 'flex';
         }
 
-        function clearError() {
-            errorBox.style.display = 'none';
-            errorMsg.textContent = '';
+        imageModalCloseBtn.addEventListener('click', () => {
+            imageModal.style.display = 'none';
+        });
+
+        imageModal.addEventListener('click', (e) => {
+            if (e.target === imageModal) {
+                imageModal.style.display = 'none';
+            }
+        });
+
+        modalDownloadBtn.addEventListener('click', () => {
+            downloadImage(currentModalImgUrl);
+        });
+
+        // Chat image click delegation
+        document.addEventListener('click', (e) => {
+            if (e.target.classList.contains('chat-img')) {
+                openImageModal(e.target.src);
+            }
+        });
+
+        // Initialize Session on Load
+        window.addEventListener('DOMContentLoaded', async () => {
+            try {
+                // 1. 세션 쿠키 발급 및 갱신
+                await fetch('/api/chat/init');
+
+                // 2. 대화 기록 로드
+                const res = await fetch('/api/chat/history');
+                const data = await res.json();
+
+                if (data.status === 'success' && data.history) {
+                    for (const msg of data.history) {
+                        if (msg.type === 'human') {
+                            appendMessage(msg.content, 'user');
+                        } else if (msg.type === 'ai') {
+                            appendMessage(msg.content.replace(/\n/g, '<br>'), 'bot');
+                        }
+                    }
+                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                }
+
+                // 3. 갤러리 이미지 로드
+                const imgRes = await fetch('/api/chat/images');
+                const imgData = await imgRes.json();
+                if (imgData.status === 'success' && imgData.images) {
+                    for (const url of imgData.images) {
+                        addImageToGallery(url);
+                    }
+                }
+            } catch (error) {
+                console.error('Session initialization failed:', error);
+            }
+        });
+
+        function appendMessage(text, sender) {
+            const msgDiv = document.createElement('div');
+            msgDiv.classList.add('message', sender);
+            if (text) {
+                msgDiv.innerHTML = text.replace(/\n/g, '<br>');
+            }
+            chatMessages.appendChild(msgDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+            return msgDiv;
         }
 
-        function showResult(imgUrl) {
-            resultImg.src = imgUrl;
-            resultSection.style.display = 'block';
-            resultPlaceholder.style.display = 'none';
+        function showTypingIndicator() {
+            const indicatorDiv = document.createElement('div');
+            indicatorDiv.classList.add('message', 'bot');
+            indicatorDiv.id = 'typing-indicator';
+            indicatorDiv.innerHTML = `
+                <div class="typing-indicator">
+                    <div class="dot"></div>
+                    <div class="dot"></div>
+                    <div class="dot"></div>
+                </div>
+            `;
+            chatMessages.appendChild(indicatorDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+            return indicatorDiv;
+        }
 
-            // 모바일 단일 컬럼일 때 스크롤
-            if (window.innerHeight > window.innerWidth) {
-                setTimeout(() => resultSection.scrollIntoView({ behavior: 'smooth', block: 'start' }), 300);
+        function removeTypingIndicator() {
+            const indicator = document.getElementById('typing-indicator');
+            if (indicator) {
+                indicator.remove();
             }
         }
 
-        /* ═══════════════════════════════════════════
-           갤러리
-        ═══════════════════════════════════════════ */
-        function addToGallery(imgUrl) {
-            galleryImages.unshift(imgUrl);
-            galleryEmpty.style.display = 'none';
+        async function sendMessage() {
+            const text = userInput.value.trim();
+            if (!text) return;
 
-            const item = document.createElement('div');
-            item.className = 'gallery-item';
-            item.innerHTML = `
-                <img src="${imgUrl}" alt="Generated Image" loading="lazy">
-                <div class="gallery-overlay"><span class="gallery-zoom-icon">🔍</span></div>`;
-            item.addEventListener('click', () => openLightbox(imgUrl));
-            gallery.insertBefore(item, galleryEmpty);
+            // 사용자 메시지 추가
+            appendMessage(text, 'user');
+            userInput.value = '';
+            sendBtn.disabled = true;
+            userInput.disabled = true;
+
+            // 로딩 애니메이션 표시
+            showTypingIndicator();
+
+            try {
+                const response = await fetch('/api/chat/stream', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: text })
+                });
+
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder('utf-8');
+                let buffer = '';
+                let botMsgDiv = null;
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+
+                    // 첫 번째 데이터 청크가 도착했을 때 로딩 애니메이션을 지우고 메시지 박스 생성
+                    if (!botMsgDiv) {
+                        removeTypingIndicator();
+                        botMsgDiv = appendMessage('', 'bot');
+                    }
+
+                    buffer += decoder.decode(value, { stream: true });
+                    const lines = buffer.split('\n');
+                    buffer = lines.pop();
+
+                    for (const line of lines) {
+                        if (line.startsWith('data: ')) {
+                            const dataStr = line.slice(6).trim();
+                            if (dataStr === '[DONE]') break;
+
+                            try {
+                                const dataObj = JSON.parse(dataStr);
+                                if (dataObj.content) {
+                                    // 텍스트 누적 시 줄바꿈 처리
+                                    botMsgDiv.innerHTML += dataObj.content.replace(/\n/g, '<br>');
+                                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                                } else if (dataObj.error) {
+                                    botMsgDiv.innerHTML += `<br><span style="color:#ef4444">[에러: ${dataObj.error}]</span>`;
+                                }
+                            } catch (e) {
+                                console.error('Parsing error:', e, dataStr);
+                            }
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                removeTypingIndicator();
+                appendMessage('<span style="color:#ef4444">네트워크 오류가 발생했습니다.</span>', 'bot');
+            } finally {
+                sendBtn.disabled = false;
+                genImgBtn.disabled = false;
+                userInput.disabled = false;
+                userInput.focus();
+            }
         }
 
-        /* ═══════════════════════════════════════════
-           Form Submit → POST /api/generate
-        ═══════════════════════════════════════════ */
-        form.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            clearError();
-
-            const pos = document.getElementById('pos-prompt').value.trim();
-            const neg = document.getElementById('neg-prompt').value.trim();
-
-            if (!pos) {
-                showError('Positive Prompt를 입력해주세요.');
+        async function generateImage() {
+            if (chatMessages.children.length === 0) {
+                alert("그림을 생성할 대화 기록이 없습니다. 먼저 대화를 나눠주세요.");
                 return;
             }
 
-            setLoading(true);
+            sendBtn.disabled = true;
+            genImgBtn.disabled = true;
+            userInput.disabled = true;
+
+            showTypingIndicator();
 
             try {
-                const res = await fetch(`${API_BASE}/generate`, {
+                const response = await fetch('/api/generate', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ pos, neg }),
+                    body: JSON.stringify({}) // 빈 바디 전송 (백엔드가 쿠키 세션 ID를 이용)
                 });
 
-                if (!res.ok) {
-                    const detail = await res.json().catch(() => ({}));
-                    throw new Error(detail.detail || `HTTP ${res.status}`);
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder('utf-8');
+                let buffer = '';
+                let botMsgDiv = null;
+                let loadingMsgDiv = null;
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+
+                    if (!botMsgDiv) {
+                        removeTypingIndicator();
+                        botMsgDiv = appendMessage('[최종 프롬프트]\n', 'bot');
+                    }
+
+                    buffer += decoder.decode(value, { stream: true });
+                    const lines = buffer.split('\n');
+                    buffer = lines.pop();
+
+                    for (const line of lines) {
+                        if (line.startsWith('data: ')) {
+                            const dataStr = line.slice(6).trim();
+                            if (dataStr === '[DONE]') break;
+
+                            try {
+                                const dataObj = JSON.parse(dataStr);
+
+                                if (dataObj.status === "streaming_kor") {
+                                    // 스트리밍된 한글 텍스트 청크 추가
+                                    botMsgDiv.innerHTML += dataObj.content.replace(/\n/g, '<br>');
+                                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                                }
+                                else if (dataObj.status === "generating_image") {
+                                    // 이미지 생성 단계 진입 알림 (새로운 말풍선)
+                                    loadingMsgDiv = appendMessage('<b>[이미지 생성 중...]</b> ⏳', 'bot');
+                                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                                }
+                                else if (dataObj.status === "complete") {
+                                    // 최종 이미지 렌더링
+                                    if (loadingMsgDiv) {
+                                        loadingMsgDiv.remove();
+                                    }
+                                    const imgHtml = `<img src="${dataObj.img_url}" class="chat-img" alt="Generated Image" style="max-width: 100%; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); cursor: zoom-in;" />`;
+                                    appendMessage(imgHtml, 'bot');
+                                    addImageToGallery(dataObj.img_url);
+                                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                                }
+                                else if (dataObj.status === "error") {
+                                    if (loadingMsgDiv) {
+                                        loadingMsgDiv.remove();
+                                    }
+                                    appendMessage(`<span style="color:#ef4444">[에러: ${dataObj.error}]</span>`, 'bot');
+                                }
+                            } catch (e) {
+                                console.error('Parsing error:', e, dataStr);
+                            }
+                        }
+                    }
                 }
 
-                const data = await res.json();  // { img_url: "..." }
-                const imgUrl = data.img_url;
-
-                showResult(imgUrl);
-                addToGallery(imgUrl);
-
-            } catch (err) {
-                showError(`이미지 생성 실패: ${err.message}`);
-                resultPlaceholder.style.display = 'flex';
+            } catch (error) {
+                console.error('Error:', error);
+                removeTypingIndicator();
+                appendMessage('<span style="color:#ef4444">이미지 생성 중 오류가 발생했습니다.</span>', 'bot');
             } finally {
-                setLoading(false);
+                sendBtn.disabled = false;
+                genImgBtn.disabled = false;
+                userInput.disabled = false;
+                userInput.focus();
+            }
+        }
+
+        sendBtn.addEventListener('click', sendMessage);
+        genImgBtn.addEventListener('click', generateImage);
+        userInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendMessage();
+        });
+
+        function showToast(message) {
+            const toast = document.createElement('div');
+            toast.textContent = message;
+            toast.style.position = 'fixed';
+            toast.style.top = '50%';
+            toast.style.left = '50%';
+            toast.style.transform = 'translate(-50%, -50%)';
+            toast.style.backgroundColor = 'rgba(0, 0, 0, 0.85)';
+            toast.style.color = '#fff';
+            toast.style.padding = '14px 28px';
+            toast.style.borderRadius = '8px';
+            toast.style.zIndex = '1000';
+            toast.style.opacity = '0';
+            toast.style.transition = 'opacity 0.3s ease';
+            toast.style.fontSize = '15px';
+            toast.style.boxShadow = '0 8px 24px rgba(0,0,0,0.2)';
+            toast.style.textAlign = 'center';
+            document.body.appendChild(toast);
+
+            // Fade in
+            setTimeout(() => { toast.style.opacity = '1'; }, 10);
+
+            // Fade out
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        const confirmModal = document.getElementById('confirmModal');
+        const modalCancelBtn = document.getElementById('modalCancelBtn');
+        const modalConfirmBtn = document.getElementById('modalConfirmBtn');
+
+        clearBtn.addEventListener('click', () => {
+            confirmModal.style.display = 'flex';
+        });
+
+        modalCancelBtn.addEventListener('click', () => {
+            confirmModal.style.display = 'none';
+        });
+
+        // 모달 밖 영역 클릭 시 닫기
+        confirmModal.addEventListener('click', (e) => {
+            if (e.target === confirmModal) {
+                confirmModal.style.display = 'none';
             }
         });
 
-        /* ═══════════════════════════════════════════
-           사이드바 토글
-        ═══════════════════════════════════════════ */
-        function toggleSidebar() {
-            document.getElementById('sidebar').classList.toggle('open');
-            document.getElementById('sidebar-overlay').classList.toggle('active');
-        }
-
-        /* ═══════════════════════════════════════════
-           라이트박스
-        ═══════════════════════════════════════════ */
-        function openLightbox(src) {
-            lightboxImg.src = src;
-            lightbox.classList.add('active');
-            document.body.style.overflow = 'hidden';
-        }
-
-        function closeLightbox() {
-            lightbox.classList.remove('active');
-            document.body.style.overflow = '';
-        }
-
-        document.addEventListener('keydown', e => {
-            if (e.key === 'Escape') closeLightbox();
-        });
-
-        // 결과 이미지 클릭 → 라이트박스
-        resultImgWrap.addEventListener('click', () => {
-            if (resultImg.src) openLightbox(resultImg.src);
-        });
-
-        /* ═══════════════════════════════════════════
-           다운로드  GET /api/download?url=...
-           API 서버가 ComfyUI 이미지를 프록시하여 반환
-        ═══════════════════════════════════════════ */
-        function downloadImage(src) {
-            lightboxSaveBtn.disabled = true;
-            lightboxSaveBtn.innerHTML = 'Saving…';
-
-            const a = document.createElement('a');
-            a.href = `${API_BASE}/download?url=${encodeURIComponent(src)}`;
-            a.style.display = 'none';
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-
-            setTimeout(() => {
-                lightboxSaveBtn.disabled = false;
-                lightboxSaveBtn.innerHTML = `
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                        <polyline points="7 10 12 15 17 10"/>
-                        <line x1="12" y1="15" x2="12" y2="3"/>
-                    </svg>
-                    Save Image`;
-            }, 1500);
-        }
-
-        lightboxSaveBtn.addEventListener('click', () => {
-            if (lightboxImg.src) downloadImage(lightboxImg.src);
-        });
-
-        downloadBtn.addEventListener('click', () => {
-            if (resultImg.src) downloadImage(resultImg.src);
+        modalConfirmBtn.addEventListener('click', async () => {
+            confirmModal.style.display = 'none';
+            try {
+                const response = await fetch('/api/chat/history', { method: 'DELETE' });
+                if (response.ok) {
+                    chatMessages.innerHTML = ''; // 화면의 채팅 내역 모두 지우기
+                    galleryContent.innerHTML = ''; // 갤러리 이미지 초기화
+                    showToast('대화가 초기화되었습니다. 새로운 대화를 시작해보세요. ✨');
+                } else {
+                    showToast('대화 초기화에 실패했습니다.');
+                }
+            } catch (err) {
+                console.error(err);
+                showToast('대화 초기화 중 오류가 발생했습니다.');
+            }
         });
     </script>
 </body>
