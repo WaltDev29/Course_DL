@@ -49,6 +49,10 @@ async def generate(session_id: str | None = Cookie(None)):
             # 요약된 JSON을 문자열로 변환
             kor_prompt = json.dumps(summary_result, ensure_ascii=False, indent=2)
             
+            # 채팅 기록에 요약된 프롬프트 추가
+            history_obj = get_history(session_id)
+            history_obj.add_ai_message(f"요약된 프롬프트:\n```json\n{kor_prompt}\n```")
+            
             # 프론트엔드에 한 번에 출력
             yield f'data: {json.dumps({"status": "streaming_kor", "content": kor_prompt})}\n\n'
             
@@ -78,7 +82,7 @@ async def generate(session_id: str | None = Cookie(None)):
                 return
                 
             # 이미지 세션에 저장
-            from app.services.chat_service import add_image_to_session, get_history
+            from app.services.chat_service import add_image_to_session
             add_image_to_session(session_id, img_url)
 
             # 채팅 내역에도 이미지를 남겨 새로고침 시 대화창에 복구되도록 함
