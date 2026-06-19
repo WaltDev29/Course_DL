@@ -79,3 +79,7 @@ dmypy.json
 
 *.keras
 *.csv
+
+# Data Set
+*.csv
+*.png
