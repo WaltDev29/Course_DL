@@ -18,7 +18,8 @@ def main():
     # 2. 하이퍼파라미터 설정
     sampling_rate = 10      # 1초 간격으로 샘플링 (원본은 100ms 간격)
     sequence_length = 300  # 과거 30초(30 time steps)를 보고 예측
-    delay = 300  # 30초 후를 예측
+    prediction_steps = 30
+    delay = sampling_rate * (sequence_length + prediction_steps - 1)
     batch_size = 256
     
     # 3. Keras Dataset 생성

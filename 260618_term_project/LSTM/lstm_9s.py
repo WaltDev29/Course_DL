@@ -18,7 +18,8 @@ def main():
     # 2. 하이퍼파라미터 설정
     sampling_rate = 1
     sequence_length = 90  # 과거 9초(90 time steps)를 보고 예측
-    delay = 90  # 9초 후를 예측
+    prediction_steps = 90
+    delay = sampling_rate * (sequence_length + prediction_steps - 1)
     batch_size = 256
     
     # 3. Keras Dataset 생성

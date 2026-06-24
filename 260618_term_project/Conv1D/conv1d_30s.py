@@ -16,9 +16,9 @@ def main():
     train_episodes, val_episodes, test_episodes, data_mean, data_std = load_and_preprocess_data(dataset_dir, num_episodes=10)
     
     # 2. 하이퍼파라미터 설정
-    sampling_rate = 10      # 1초 간격으로 샘플링 (원본은 100ms 간격)
-    sequence_length = 120  # 과거 120초(120 time steps)를 보고 예측
-    prediction_steps = 120
+    sampling_rate = 10
+    sequence_length = 10
+    prediction_steps = 30
     delay = sampling_rate * (sequence_length + prediction_steps - 1)
     batch_size = 256
     
@@ -28,17 +28,16 @@ def main():
     val_dataset = create_tf_dataset(val_episodes, sequence_length, delay, batch_size, shuffle=False, sampling_rate=sampling_rate)
     test_dataset = create_tf_dataset(test_episodes, sequence_length, delay, batch_size, shuffle=False, sampling_rate=sampling_rate)
     
-    # 4. 모델 구조 정의 (Keras)
-    # 센서 특성이 6개이므로 shape=(sequence_length, 6)
+    # 4. 모델 구조 정의 (Keras - Conv1D)
     inputs = keras.Input(shape=(sequence_length, 6))
-    x = layers.LSTM(16)(inputs)
-    # 출력값 역시 6개 특성이어야 하므로 Dense(6)
+    x = layers.Conv1D(filters=32, kernel_size=3, activation='relu')(inputs)
+    x = layers.GlobalAveragePooling1D()(x)
     outputs = layers.Dense(6)(x)
     model = keras.Model(inputs, outputs)
     
     model.compile(optimizer="rmsprop", loss="mse", metrics=["mae"])
     
-    model_save_path = os.path.join(os.path.dirname(__file__), "lstm_120s.keras")
+    model_save_path = os.path.join(os.path.dirname(__file__), "conv1d_30s.keras")
     callbacks = [
         keras.callbacks.ModelCheckpoint(model_save_path, save_best_only=True)
     ]
@@ -47,7 +46,7 @@ def main():
     print("Starting training...")
     history = model.fit(
         train_dataset,
-        epochs=10,  # 초기 테스트이므로 10번만 학습
+        epochs=50,
         validation_data=val_dataset,
         callbacks=callbacks
     )
@@ -67,36 +66,31 @@ def main():
     plt.figure()
     plt.plot(epochs, loss, "bo", label="Training MAE")
     plt.plot(epochs, val_loss, "b", label="Validation MAE")
-    plt.title("Training and validation MAE (LSTM 120s)")
+    plt.title("Training and validation MAE (Conv1D 30s)")
     plt.legend()
     
-    plot_path = os.path.join(os.path.dirname(__file__), "lstm_120s_loss.png")
+    plot_path = os.path.join(os.path.dirname(__file__), "conv1d_30s_loss.png")
     plt.savefig(plot_path)
     print(f"\n학습 곡선이 {plot_path}에 저장되었습니다.")
     
     # 8. 예측 vs 실제 값 비교 시각화 (테스트 세트의 첫 번째 에피소드 전체 사용)
-    print("\n[8. 첫 번째 테스트 에피소드 전체(약 300초) 예측 vs 실제 값 시각화 생성 중...]")
-    # 첫 번째 테스트 에피소드 전용 데이터셋 생성
+    print("\n[8. 첫 번째 테스트 에피소드 전체 예측 vs 실제 값 시각화 생성 중...]")
     single_test_ep = [test_episodes[0]]
     single_test_dataset = create_tf_dataset(single_test_ep, sequence_length, delay, batch_size, shuffle=False, sampling_rate=sampling_rate)
     
-    # 해당 에피소드 전체에 대한 예측 수행
     predictions = model.predict(single_test_dataset)
     
-    # 실제 타겟 값 추출
     actual_targets = []
     for _, targets in single_test_dataset:
         actual_targets.append(targets.numpy())
     import numpy as np
     actual_targets = np.concatenate(actual_targets, axis=0)
     
-    # 역정규화 (Inverse Transform) 적용하여 원래 스케일로 복원
     predictions_original = predictions * data_std + data_mean
     actual_targets_original = actual_targets * data_std + data_mean
     
     feature_names = ['Pressure_1', 'Pressure_2', 'Temperature_1', 'Temperature_2', 'Gas_Leak', 'Accelerometer']
     
-    # x축을 초(Seconds) 단위로 변환 (1 step = 100ms = 0.1s)
     time_axis = np.arange(len(actual_targets_original)) * 0.1
     
     plot_configs = [((15, 12), "_short"), ((15, 24), "_tall")]
@@ -113,9 +107,9 @@ def main():
                 plt.xlabel("Time (seconds)")
             plt.legend(loc='upper right')
             
-        plt.suptitle('Prediction vs Actual on Test Episode 1 (Full 300s)', y=1.02)
+        plt.suptitle('Prediction vs Actual on Test Episode 1 (Conv1D 30s)', y=1.02)
         plt.tight_layout()
-        pred_plot_path = os.path.join(os.path.dirname(__file__), f"lstm_120s_predictions{suffix}.png")
+        pred_plot_path = os.path.join(os.path.dirname(__file__), f"conv1d_30s_predictions{suffix}.png")
         plt.savefig(pred_plot_path)
         plt.close()
         print(f"예측 비교 그래프({suffix})가 {pred_plot_path}에 저장되었습니다.")

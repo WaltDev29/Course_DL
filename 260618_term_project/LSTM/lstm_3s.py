@@ -13,12 +13,13 @@ def main():
     dataset_dir = os.path.join(base_dir, 'dataset')
     
     # 1. 데이터 로드 (초기 테스트용으로 10개 에피소드만 사용)
-    train_episodes, val_episodes, test_episodes, data_mean, data_std = load_and_preprocess_data(dataset_dir, num_episodes=10)
+    train_episodes, val_episodes, test_episodes, data_mean, data_std = load_and_preprocess_data(dataset_dir, num_episodes=500)
     
     # 2. 하이퍼파라미터 설정
     sampling_rate = 1
-    sequence_length = 30  # 과거 3초(30 time steps)를 보고 예측
-    delay = 30             # 3초 후를 예측 (100ms * 30 = 3000ms = 3s)
+    sequence_length = 300  # 과거 3초(30 time steps)를 보고 예측
+    prediction_steps = 30
+    delay = sampling_rate * (sequence_length + prediction_steps - 1)
     batch_size = 256
     
     # 3. Keras Dataset 생성
@@ -28,10 +29,9 @@ def main():
     test_dataset = create_tf_dataset(test_episodes, sequence_length, delay, batch_size, shuffle=False, sampling_rate=sampling_rate)
     
     # 4. 모델 구조 정의 (Keras)
-    # 센서 특성이 6개이므로 shape=(sequence_length, 6)
     inputs = keras.Input(shape=(sequence_length, 6))
-    x = layers.LSTM(16)(inputs)
-    # 출력값 역시 6개 특성이어야 하므로 Dense(6)
+    x = layers.LSTM(32, return_sequences=True)(inputs)
+    x = layers.LSTM(32)(x)
     outputs = layers.Dense(6)(x)
     model = keras.Model(inputs, outputs)
     
@@ -46,7 +46,7 @@ def main():
     print("Starting training...")
     history = model.fit(
         train_dataset,
-        epochs=10,  # 초기 테스트이므로 10번만 학습
+        epochs=50,  # 초기 테스트이므로 10번만 학습
         validation_data=val_dataset,
         callbacks=callbacks
     )

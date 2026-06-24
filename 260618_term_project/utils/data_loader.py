@@ -15,7 +15,7 @@ FEATURES = [
 
 def load_and_preprocess_data(dataset_dir, num_episodes=10):
     """
-    10개의 에피소드를 로드하고, 학습/검증/테스트 데이터로 분리 후 정규화를 수행합니다.
+    num_episodes 수만큼 에피소드를 로드하고, 학습/검증/테스트 데이터로 분리 후 정규화를 수행합니다.
     """
     print(f"Loading {num_episodes} episodes from {dataset_dir}...")
     raw_data_list = []
@@ -26,20 +26,13 @@ def load_and_preprocess_data(dataset_dir, num_episodes=10):
         
         for folder, file_pattern in FEATURES:
             file_path = os.path.join(dataset_dir, folder, file_pattern.format(id=episode_id))
-            # 데이터 파일에는 헤더가 없고, 0번 열은 인덱스(시간), 1번 열이 실제 센서값입니다.
+            # 1번 열의 실제 센서값 추출
             df = pd.read_csv(file_path, header=None)
             episode_data.append(df.iloc[:, 1].values)
             
-        # (3000,) 형태의 6개 배열을 가로로 이어붙여 (3000, 6)으로 만듭니다.
+        # (3000,) 형태의 6개 배열을 가로로 병합하여 (3000, 6) 형태로 만듦.
         episode_data = np.column_stack(episode_data)
         raw_data_list.append(episode_data)
-        
-        # 첫 번째 에피소드의 병합된 데이터 상위 5개 행 출력
-        if i == 0:
-            df_merged = pd.DataFrame(episode_data, columns=[f[0] for f in FEATURES])
-            print(f"\n[Episode {episode_id}] 병합된 데이터 상위 5개 행:")
-            print(df_merged.head())
-            print("-" * 50)
         
     # 에피소드 단위로 분할 (Train 50%, Val 25%, Test 25%)
     num_train = int(0.5 * num_episodes)
@@ -49,7 +42,7 @@ def load_and_preprocess_data(dataset_dir, num_episodes=10):
     val_episodes = raw_data_list[num_train:num_train+num_val]
     test_episodes = raw_data_list[num_train+num_val:]
     
-    # 정규화 (Data Leakage 방지를 위해 Train 데이터의 mean, std만 사용)
+    # 데이터 표준화 (데이터 누수 방지를 위해 Train 데이터의 mean, std만 사용)
     train_concat = np.concatenate(train_episodes, axis=0)
     mean = train_concat.mean(axis=0)
     std = train_concat.std(axis=0)
@@ -64,15 +57,13 @@ def load_and_preprocess_data(dataset_dir, num_episodes=10):
 
 def create_tf_dataset(episodes, sequence_length, delay, batch_size, shuffle=True, sampling_rate=1):
     """
-    각 에피소드별로 시계열 데이터셋을 생성한 뒤, 하나로 병합(concatenate)합니다.
+    각 에피소드별로 시계열 데이터셋을 생성한 뒤, 하나로 병합합니다.
     """
     combined_dataset = None
     
     for ep in episodes:
-        # 입력 시퀀스는 ep[:-delay], 예측 타겟은 ep[delay:]
-        # 이렇게 하면 시퀀스의 마지막 인덱스 + delay 시점의 데이터를 예측하게 됩니다.
         ds = keras.utils.timeseries_dataset_from_array(
-            data=ep[:-delay],
+            data=ep,
             targets=ep[delay:],
             sampling_rate=sampling_rate,
             sequence_length=sequence_length,
@@ -120,6 +111,68 @@ def create_tf_dataset_multi_step(episodes, sequence_length, delays, feature_inde
             combined_dataset = combined_dataset.concatenate(ds)
             
     return combined_dataset
+
+def build_datasets(train_episodes, val_episodes, test_episodes, sampling_rate, sequence_length, prediction_steps, batch_size):
+    """
+    주어진 하이퍼파라미터를 사용하여 학습, 검증, 테스트 데이터셋을 한 번에 생성하고 
+    계산된 delay 값과 함께 반환합니다.
+    """
+    delay = sampling_rate * (sequence_length + prediction_steps - 1)
+    
+    print("Creating tf.data.Datasets...")
+    train_dataset = create_tf_dataset(train_episodes, sequence_length, delay, batch_size, shuffle=True, sampling_rate=sampling_rate)
+    val_dataset = create_tf_dataset(val_episodes, sequence_length, delay, batch_size, shuffle=False, sampling_rate=sampling_rate)
+    test_dataset = create_tf_dataset(test_episodes, sequence_length, delay, batch_size, shuffle=False, sampling_rate=sampling_rate)
+    
+    return train_dataset, val_dataset, test_dataset, delay
+
+def create_tf_seq2seq_dataset(episodes, sequence_length, prediction_steps, batch_size, shuffle=True, sampling_rate=1):
+    """
+    Seq2Seq 모델을 위한 데이터셋을 생성합니다.
+    입력: 과거 sequence_length 만큼의 데이터
+    타겟: 미래 prediction_steps 만큼의 연속된 데이터
+    """
+    import tensorflow as tf
+    combined_dataset = None
+    
+    for ep in episodes:
+        # 입력과 타겟을 합친 전체 윈도우 길이를 구합니다.
+        window_size = sequence_length + prediction_steps
+        
+        ds = keras.utils.timeseries_dataset_from_array(
+            data=ep,
+            targets=None,
+            sequence_length=window_size,
+            sampling_rate=sampling_rate,
+            batch_size=batch_size,
+            shuffle=shuffle
+        )
+        
+        # 전체 윈도우를 (입력, 타겟)으로 분리하는 매핑 함수
+        def split_window(window):
+            inputs = window[:, :sequence_length, :]
+            targets = window[:, sequence_length:, :]
+            return inputs, targets
+            
+        ds = ds.map(split_window, num_parallel_calls=tf.data.AUTOTUNE)
+        
+        if combined_dataset is None:
+            combined_dataset = ds
+        else:
+            combined_dataset = combined_dataset.concatenate(ds)
+            
+    return combined_dataset
+
+def build_seq2seq_datasets(train_episodes, val_episodes, test_episodes, sequence_length, prediction_steps, batch_size, sampling_rate=1):
+    """
+    주어진 하이퍼파라미터를 사용하여 Seq2Seq 학습, 검증, 테스트 데이터셋을 한 번에 생성합니다.
+    """
+    print("Creating Seq2Seq tf.data.Datasets...")
+    train_dataset = create_tf_seq2seq_dataset(train_episodes, sequence_length, prediction_steps, batch_size, shuffle=True, sampling_rate=sampling_rate)
+    val_dataset = create_tf_seq2seq_dataset(val_episodes, sequence_length, prediction_steps, batch_size, shuffle=False, sampling_rate=sampling_rate)
+    test_dataset = create_tf_seq2seq_dataset(test_episodes, sequence_length, prediction_steps, batch_size, shuffle=False, sampling_rate=sampling_rate)
+    
+    return train_dataset, val_dataset, test_dataset
 
 if __name__ == '__main__':
     load_and_preprocess_data()
